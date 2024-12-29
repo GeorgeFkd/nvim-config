@@ -254,7 +254,13 @@ require('lazy').setup({
       },
     },
   },
-
+  {
+    'nvim-tree/nvim-web-devicons', -- Example plugin
+    enabled = true,
+    config = function()
+      require('nvim-web-devicons').setup { default = true, strict = true, variant = 'dark', color_icons = true }
+    end,
+  },
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
   --
   -- This is often very useful to both group configuration, as well as handle
@@ -452,7 +458,7 @@ require('lazy').setup({
       --  - and more!
       --
       -- Thus, Language Servers are external tools that must be installed separately from
-      -- Neovim. This is where `mason` and related plugins come into play.
+      -- Neovim.This is where `mason` and related plugins come into play.
       --
       -- If you're wondering about lsp vs treesitter, you can check out the wonderfully
       -- and elegantly composed help section, `:help lsp-vs-treesitter`
@@ -885,6 +891,99 @@ require('lazy').setup({
       --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
     end,
   },
+  {
+    'nvim-neo-tree/neo-tree.nvim',
+    branch = 'v3.x',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'nvim-tree/nvim-web-devicons',
+      'MunifTanjim/nui.nvim',
+    },
+    config = function()
+      --those are deprecated
+      vim.diagnostic.config {
+        virtual_text = false,
+        signs = {
+          text = {
+            [vim.diagnostic.severity.ERROR] = '❌',
+            [vim.diagnostic.severity.HINT] = '💡',
+            [vim.diagnostic.severity.INFO] = 'ℹ️',
+            [vim.diagnostic.severity.WARN] = '⚠️',
+          },
+        },
+      }
+      --vim.fn.sign_define('DiagnosticSignError', { text = '❌', texthl = 'DiagnosticSignError' })
+      --vim.fn.sign_define('DiagnosticSignWarn', { text = '⚠️', texthl = 'DiagnosticSignWarn' })
+      --vim.fn.sign_define('DiagnosticSignInfo', { text = 'ℹ️', texthl = 'DiagnosticSignInfo' })
+      --vim.fn.sign_define('DiagnosticSignHint', { text = '💡', texthl = 'DiagnosticSignHint' })
+
+      require('neo-tree').setup {
+        enable_git_status = true,
+        enable_diagnostics = true,
+        sort_function = nil,
+        default_component_configs = {
+          indent = {
+            indent_size = 2,
+            padding = 1, -- extra padding on left hand side
+            -- indent guides
+            with_markers = true,
+            indent_marker = '│',
+            last_indent_marker = '└',
+            highlight = 'NeoTreeIndentMarker',
+            -- expander config, needed for nesting files
+            with_expanders = nil, -- if nil and file nesting is enabled, will enable expanders
+            expander_collapsed = '',
+            expander_expanded = '',
+            expander_highlight = 'NeoTreeExpander',
+          },
+          icon = {
+            folder_closed = '',
+            folder_open = '',
+            folder_empty = '󰜌',
+            provider = function(icon, node, state) -- default icon provider utilizes nvim-web-devicons if available
+              if node.type == 'file' or node.type == 'terminal' then
+                local success, web_devicons = pcall(require, 'nvim-web-devicons')
+                local name = node.type == 'terminal' and 'terminal' or node.name
+                if success then
+                  local devicon, hl = web_devicons.get_icon(name)
+                  icon.text = devicon or icon.text
+                  icon.highlight = hl or icon.highlight
+                end
+              end
+            end,
+            -- The next two settings are only a fallback, if you use nvim-web-devicons and configure default icons there
+            -- then these will never be used.
+            default = '*',
+            highlight = 'NeoTreeFileIcon',
+          },
+          modified = {
+            symbol = '[+]',
+            highlight = 'NeoTreeModified',
+          },
+          name = {
+            trailing_slash = false,
+            use_git_status_colors = true,
+            highlight = 'NeoTreeFileName',
+          },
+          git_status = {
+            symbols = {
+              -- Change type
+              added = '', -- or "✚", but this is redundant info if you use git_status_colors on the name
+              modified = '', -- or "", but this is redundant info if you use git_status_colors on the name
+              deleted = '✖', -- this can only be used in the git_status source
+              renamed = '󰁕', -- this can only be used in the git_status source
+              -- Status type
+              untracked = '',
+              ignored = '',
+              unstaged = '󰄱',
+              staged = '',
+              conflict = '',
+            },
+          },
+        },
+      }
+    end,
+  },
 
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
@@ -898,7 +997,7 @@ require('lazy').setup({
   -- require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
@@ -930,6 +1029,7 @@ require('lazy').setup({
   },
 })
 vim.cmd.colorscheme 'desert'
+
 vim.api.nvim_create_autocmd('TermOpen', {
   group = vim.api.nvim_create_augroup('custom-term-open', {
     clear = true,
@@ -939,5 +1039,10 @@ vim.api.nvim_create_autocmd('TermOpen', {
     vim.opt.relativenumber = false
   end,
 })
+
+--vim.g.loaded_netrw = 1
+--vim.g.loaded_netrwPlugin = 1
+
+vim.opt.termguicolors = true
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
